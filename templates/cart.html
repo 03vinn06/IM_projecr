@@ -171,8 +171,8 @@
 
   // Live summary via API
   fetch('/api/cart-summary').then(r => r.json()).then(d => {
-    document.getElementById('s-tax').textContent   = '$' + d.tax.toFixed(2);
-    document.getElementById('s-total').textContent = '$' + d.total.toFixed(2);
+    document.getElementById('s-tax').textContent   = '₱' + d.tax.toFixed(2);
+    document.getElementById('s-total').textContent = '₱' + d.total.toFixed(2);;
   });
 </script>
 {% endblock %}
