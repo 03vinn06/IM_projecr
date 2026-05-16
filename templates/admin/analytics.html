@@ -1,0 +1,300 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Analytics — Admin — Saffron & Salt{% endblock %}
+
+{% block admin_extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  .period-tabs { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.75rem; }
+  .period-tab {
+    padding:.5rem 1.1rem; border-radius:8px; font-size:.85rem; font-weight:600;
+    text-decoration:none; border:2px solid var(--sand); color:var(--muted);
+    transition:all .15s;
+  }
+  .period-tab.active, .period-tab:hover { border-color:var(--spice); color:var(--spice); background:rgba(201,82,26,.06); }
+
+  .custom-range { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1.75rem; }
+  .custom-range input { padding:.4rem .8rem; border:1.5px solid var(--sand); border-radius:8px; font-size:.85rem; }
+  .custom-range button { padding:.45rem 1rem; }
+
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+  .stat-card {
+    background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:1.4rem; display:flex; align-items:center; gap:1rem;
+  }
+  .stat-icon { font-size:2rem; }
+  .stat-info label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .stat-info .num  { font-family:'Playfair Display',serif; font-size:1.8rem; line-height:1.1; color:var(--ink); }
+  .stat-card.highlight .num { color:var(--spice); }
+
+  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem; }
+  @media(max-width:900px) { .charts-grid { grid-template-columns:1fr; } }
+  .chart-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; }
+  .chart-card h3 { font-family:'Playfair Display',serif; font-size:1.05rem; margin-bottom:1.2rem; }
+
+  .top-items-wrap { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-bottom:2rem; }
+  .top-items-wrap h3 { font-family:'Playfair Display',serif; font-size:1.1rem; margin-bottom:1.25rem; }
+  .top-item-row { display:flex; align-items:center; gap:1rem; padding:.75rem 0; border-bottom:1px solid var(--sand); }
+  .top-item-row:last-child { border:none; }
+  .rank-badge { width:28px; height:28px; border-radius:50%; background:var(--spice); color:#fff; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .rank-badge.gold   { background:#d97706; }
+  .rank-badge.silver { background:#6b7280; }
+  .rank-badge.bronze { background:#92400e; }
+  .item-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+  .item-meta { flex:1; }
+  .item-meta strong { display:block; font-size:.9rem; }
+  .item-meta small  { color:var(--muted); font-size:.78rem; }
+  .item-stats { text-align:right; }
+  .item-stats .qty   { font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--spice); line-height:1; }
+  .item-stats small  { color:var(--muted); font-size:.75rem; }
+  .bar-fill { height:6px; border-radius:3px; background:var(--spice); margin-top:.4rem; transition:width .5s; }
+  .stars-yellow { color:#f59e0b; font-size:.85rem; }
+
+  .payment-row { display:flex; align-items:center; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid var(--sand); font-size:.88rem; }
+  .payment-row:last-child { border:none; }
+  .method-icon { font-size:1.4rem; margin-right:.5rem; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<h1 class="admin-page-title">📈 Analytics & Reports</h1>
+
+<!-- Period Tabs -->
+<div class="period-tabs">
+  <a href="{{ url_for('admin_analytics', period='today') }}"
+     class="period-tab {% if period=='today' %}active{% endif %}">Today</a>
+  <a href="{{ url_for('admin_analytics', period='week') }}"
+     class="period-tab {% if period=='week' %}active{% endif %}">Last 7 Days</a>
+  <a href="{{ url_for('admin_analytics', period='month') }}"
+     class="period-tab {% if period=='month' %}active{% endif %}">Last 30 Days</a>
+  <span class="period-tab {% if period=='custom' %}active{% endif %}" style="cursor:default">Custom Range</span>
+</div>
+
+<form method="GET" action="{{ url_for('admin_analytics') }}" class="custom-range">
+  <input type="hidden" name="period" value="custom">
+  <input type="date" name="from" value="{{ date_from }}">
+  <span style="color:var(--muted)">to</span>
+  <input type="date" name="to" value="{{ date_to }}">
+  <button type="submit" class="btn btn-outline btn-sm">Apply</button>
+</form>
+
+<p style="color:var(--muted); font-size:.85rem; margin-bottom:1.5rem; margin-top:-.75rem">
+  Showing: <strong>{{ label }}</strong>
+</p>
+
+<!-- Summary Stats -->
+<div class="stats-grid">
+  <div class="stat-card highlight">
+    <div class="stat-icon">💰</div>
+    <div class="stat-info">
+      <label>Revenue</label>
+      <div class="num">₱{{ "%.0f"|format(summary.total_revenue) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🧾</div>
+    <div class="stat-info">
+      <label>Orders</label>
+      <div class="num">{{ summary.total_orders }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📊</div>
+    <div class="stat-info">
+      <label>Avg Order</label>
+      <div class="num">₱{{ "%.0f"|format(summary.avg_order_value) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🛵</div>
+    <div class="stat-info">
+      <label>Delivery</label>
+      <div class="num">{{ summary.delivery_count }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🏪</div>
+    <div class="stat-info">
+      <label>Pickup</label>
+      <div class="num">{{ summary.pickup_count }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="charts-grid">
+  <!-- Revenue Line Chart -->
+  <div class="chart-card" style="grid-column: 1 / -1">
+    <h3>📅 Daily Revenue & Orders</h3>
+    <canvas id="revenueChart" height="90"></canvas>
+  </div>
+
+  <!-- Category Pie -->
+  <div class="chart-card">
+    <h3>🍽️ Revenue by Category</h3>
+    <canvas id="categoryChart" height="220"></canvas>
+  </div>
+
+  <!-- Hourly Heatmap -->
+  <div class="chart-card">
+    <h3>⏰ Orders by Hour</h3>
+    <canvas id="hourlyChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- Most Ordered Items -->
+<div class="top-items-wrap">
+  <h3>🏆 Most Ordered Items — {{ label }}</h3>
+  {% if top_items %}
+  {% set max_qty = top_items[0].total_qty %}
+  {% for item in top_items %}
+  <div class="top-item-row">
+    <div class="rank-badge {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+      {{ loop.index }}
+    </div>
+    <img class="item-thumb"
+         src="{{ item.image_url or 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=80' }}"
+         alt="{{ item.name }}">
+    <div class="item-meta">
+      <strong>{{ item.name }}</strong>
+      <div class="bar-fill" style="width:{{ (item.total_qty / max_qty * 100)|int }}%"></div>
+      <small>
+        Revenue: ₱{{ "%.2f"|format(item.total_revenue) }}
+        {% if item.review_count > 0 %}
+        &nbsp;|&nbsp;
+        <span class="stars-yellow">{{ '★' * (item.avg_rating|round|int) }}</span>
+        {{ "%.1f"|format(item.avg_rating) }} ({{ item.review_count }})
+        {% endif %}
+      </small>
+    </div>
+    <div class="item-stats">
+      <div class="qty">{{ item.total_qty }}</div>
+      <small>orders</small>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color:var(--muted); text-align:center; padding:2rem">No orders in this period.</p>
+  {% endif %}
+</div>
+
+<!-- Payment Breakdown -->
+<div class="chart-card" style="margin-bottom:2rem">
+  <h3>💳 Payment Methods</h3>
+  {% if by_payment %}
+  {% for pm in by_payment %}
+  <div class="payment-row">
+    <div>
+      <span class="method-icon">
+        {% if pm.method == 'cash' %}💵
+        {% elif pm.method == 'gcash' %}📱
+        {% elif pm.method == 'maya' %}💜
+        {% else %}💳{% endif %}
+      </span>
+      <strong>{{ pm.method|title }}</strong>
+      <span style="color:var(--muted); font-size:.8rem"> — {{ pm.count }} transaction{{ 's' if pm.count != 1 }}</span>
+    </div>
+    <strong style="color:var(--spice)">₱{{ "%.2f"|format(pm.total) }}</strong>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color:var(--muted); text-align:center; padding:1rem">No payment data for this period.</p>
+  {% endif %}
+</div>
+
+<script>
+// ── Revenue Chart ──
+const revData = {{ daily_revenue | tojson }};
+const revLabels  = revData.map(d => d.day);
+const revRevenue = revData.map(d => d.revenue);
+const revOrders  = revData.map(d => d.orders);
+
+new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: {
+    labels: revLabels,
+    datasets: [
+      {
+        label: 'Revenue (₱)',
+        data: revRevenue,
+        borderColor: '#c9521a',
+        backgroundColor: 'rgba(201,82,26,.10)',
+        fill: true,
+        tension: .35,
+        yAxisID: 'yRev',
+        pointBackgroundColor: '#c9521a',
+      },
+      {
+        label: 'Orders',
+        data: revOrders,
+        borderColor: '#1e5799',
+        backgroundColor: 'transparent',
+        borderDash: [5,4],
+        tension: .35,
+        yAxisID: 'yOrd',
+        pointBackgroundColor: '#1e5799',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode:'index', intersect:false },
+    scales: {
+      yRev: { position:'left',  beginAtZero:true, ticks:{ callback: v => '₱'+v } },
+      yOrd: { position:'right', beginAtZero:true, grid:{ drawOnChartArea:false } }
+    },
+    plugins: { legend:{ position:'top' } }
+  }
+});
+
+// ── Category Chart ──
+const catData = {{ by_category | tojson }};
+const catColors = ['#c9521a','#f59e0b','#2e7d32','#1e5799','#7c3aed','#db2777'];
+if (catData.length) {
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: catData.map(d => d.category),
+      datasets: [{
+        data: catData.map(d => d.revenue),
+        backgroundColor: catColors,
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ boxWidth:12 } },
+        tooltip: { callbacks: { label: ctx => ctx.label + ': ₱' + ctx.raw.toFixed(2) } }
+      }
+    }
+  });
+}
+
+// ── Hourly Chart ──
+const hourRaw  = {{ hourly | tojson }};
+const hourMap  = {};
+hourRaw.forEach(h => hourMap[h.hour] = h.orders);
+const hours    = Array.from({length:24}, (_, i) => i);
+const hourVals = hours.map(h => hourMap[h] || 0);
+const hourLabels = hours.map(h => (h < 10 ? '0'+h : h) + ':00');
+
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: hourLabels,
+    datasets: [{
+      label: 'Orders',
+      data: hourVals,
+      backgroundColor: hourVals.map(v => v === Math.max(...hourVals) && v > 0 ? '#c9521a' : 'rgba(201,82,26,.35)'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: { y: { beginAtZero:true, ticks:{ stepSize:1 } } },
+    plugins: { legend:{ display:false } }
+  }
+});
+</script>
+{% endblock %}

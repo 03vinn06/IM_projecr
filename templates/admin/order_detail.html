@@ -1,0 +1,209 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Order #{{ order.id }} — Admin{% endblock %}
+
+{% block admin_extra_head %}
+<style>
+  .back-link { color:var(--spice); text-decoration:none; font-size:.9rem; font-weight:600; display:inline-flex; align-items:center; gap:.3rem; margin-bottom:1.25rem; }
+  .detail-grid { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
+  @media(max-width:900px) { .detail-grid { grid-template-columns:1fr; } }
+
+  .detail-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; margin-bottom:1.25rem; }
+  .dc-header { background:var(--sand); padding:.9rem 1.5rem; display:flex; align-items:center; gap:.5rem; }
+  .dc-header h2 { font-family:'Playfair Display',serif; font-size:1.1rem; }
+  .dc-body { padding:1.25rem 1.5rem; }
+
+  .info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; }
+  .info-item label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); display:block; margin-bottom:.2rem; }
+
+  .item-row { display:flex; gap:1rem; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--sand); }
+  .item-row:last-child { border:none; }
+  .item-thumb { width:50px; height:50px; border-radius:8px; object-fit:cover; }
+  .item-info { flex:1; }
+  .item-info strong { display:block; }
+  .item-info small { color:var(--muted); font-size:.8rem; }
+  .item-sub { font-weight:700; color:var(--spice); }
+
+  .totals-row { display:flex; justify-content:space-between; padding:.4rem 0; font-size:.9rem; }
+  .totals-row.grand { border-top:2px solid var(--sand); margin-top:.5rem; padding-top:.75rem; font-size:1.05rem; font-weight:700; color:var(--spice); }
+
+  /* STATUS FORM */
+  .status-form select { width:100%; margin-bottom:.75rem; }
+  .status-form textarea { width:100%; margin-bottom:.75rem; }
+
+  /* TIMELINE */
+  .timeline { padding-left:.75rem; border-left:3px solid var(--sand); }
+  .tl-item { position:relative; padding:.5rem 0 .5rem 1.25rem; font-size:.85rem; }
+  .tl-item::before { content:''; position:absolute; left:-8px; top:.75rem; width:13px; height:13px; border-radius:50%; background:var(--spice); border:2px solid #fff; box-shadow:0 0 0 2px var(--spice); }
+  .tl-item .tl-status { font-weight:700; }
+  .tl-item .tl-meta { color:var(--muted); font-size:.78rem; margin-top:.1rem; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<a href="{{ url_for('admin_orders') }}" class="back-link">← Back to Orders</a>
+<h1 class="admin-page-title">Order <span style="color:var(--spice)">#{{ order.id }}</span></h1>
+
+<div class="detail-grid">
+  <div>
+    <!-- ORDER INFO -->
+    <div class="detail-card">
+      <div class="dc-header"><h2>📋 Order Info</h2></div>
+      <div class="dc-body">
+        <div class="info-grid">
+          <div class="info-item"><label>Customer</label><strong>{{ order.customer_name }}</strong></div>
+          <div class="info-item"><label>Email</label>{{ order.email }}</div>
+          <div class="info-item"><label>Phone</label>{{ order.phone or '—' }}</div>
+          <div class="info-item"><label>Fulfillment</label>{{ order.fulfillment_name|title }}</div>
+          <div class="info-item"><label>Placed</label>{{ order.created_at[:16] }}</div>
+          <div class="info-item"><label>Status</label>
+            <span class="status-badge status-{{ order.status_name }}">{{ order.status_name|replace('_',' ')|title }}</span>
+          </div>
+        </div>
+        {% if order.fulfillment_name == 'delivery' %}
+        <div style="margin-top:1rem; padding:.75rem 1rem; background:#fdf6ec; border-radius:8px; font-size:.9rem;">
+          📍 {{ order.delivery_address }}, {{ order.delivery_city }} {{ order.delivery_zip }}
+        </div>
+        {% endif %}
+        {% if order.special_instructions %}
+        <div style="margin-top:.75rem; font-size:.88rem; color:var(--muted);">
+          <strong>Notes:</strong> {{ order.special_instructions }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ITEMS -->
+    <div class="detail-card">
+      <div class="dc-header"><h2>🍽️ Items</h2></div>
+      <div class="dc-body">
+        {% for item in items %}
+        <div class="item-row">
+          <img class="item-thumb" src="{{ item.image_url or 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100' }}" alt="{{ item.item_name }}">
+          <div class="item-info">
+            <strong>{{ item.item_name }}</strong>
+            <small>₱{{ "%.2f"|format(item.unit_price) }} × {{ item.quantity }}</small>
+          </div>
+          <span class="item-sub">₱{{ "%.2f"|format(item.unit_price * item.quantity) }}</span>
+        </div>
+        {% endfor %}
+        <div style="margin-top:1rem">
+          <div class="totals-row"><span>Subtotal</span><span>₱{{ "%.2f"|format(order.subtotal) }}</span></div>
+          <div class="totals-row"><span>Delivery</span><span>₱{{ "%.2f"|format(order.delivery_fee) }}</span></div>
+          <div class="totals-row"><span>Tax</span><span>₱{{ "%.2f"|format(order.tax) }}</span></div>
+          <div class="totals-row grand"><span>Total</span><span>₱{{ "%.2f"|format(order.total) }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="detail-card">
+      <div class="dc-header"><h2>📜 Status History</h2></div>
+      <div class="dc-body">
+        <div class="timeline">
+          {% for log in logs %}
+          <div class="tl-item">
+            <div class="tl-status">
+              <span class="status-badge status-{{ log.status_name }}">{{ log.status_name|replace('_',' ')|title }}</span>
+            </div>
+            <div class="tl-meta">
+              {{ log.changed_at[:16] }}
+              {% if log.changed_by_name %} · by {{ log.changed_by_name }}{% endif %}
+              {% if log.note %} — {{ log.note }}{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: UPDATE STATUS -->
+  <div>
+    <div class="detail-card">
+      <div class="dc-header"><h2>⚡ Update Status</h2></div>
+      <div class="dc-body">
+        <form action="{{ url_for('admin_update_status', order_id=order.id) }}" method="POST" class="status-form">
+          <div class="form-group">
+            <label>New Status</label>
+            <select class="form-control" name="status">
+              {% for s in statuses %}
+              <option value="{{ s.name }}" {% if s.name == order.status_name %}selected{% endif %}>
+                {{ s.name|replace('_',' ')|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Note (optional)</label>
+            <textarea class="form-control" name="note" rows="2" placeholder="e.g. Driver en route…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">
+            Update Status
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if payment %}
+    <div class="detail-card" style="margin-top:1.25rem">
+      <div class="dc-header"><h2>💳 Payment</h2></div>
+      <div class="dc-body">
+        <div style="font-size:.88rem; margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+            <span style="color:var(--muted)">Method</span>
+            <strong>
+              {% if payment.method_name == 'cash' %}💵{% elif payment.method_name == 'gcash' %}📱{% elif payment.method_name == 'maya' %}💜{% else %}💳{% endif %}
+              {{ payment.method_name|title }}
+            </strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+            <span style="color:var(--muted)">Amount</span>
+            <strong style="color:var(--spice)">₱{{ "%.2f"|format(payment.amount) }}</strong>
+          </div>
+          {% if payment.reference_number %}
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+            <span style="color:var(--muted)">Reference</span>
+            <strong>{{ payment.reference_number }}</strong>
+          </div>
+          {% endif %}
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--muted)">Status</span>
+            <span class="status-badge {% if payment.status_name == 'paid' %}status-delivered{% elif payment.status_name == 'failed' %}status-cancelled{% else %}status-pending{% endif %}">
+              {{ payment.status_name|title }}
+            </span>
+          </div>
+        </div>
+        <form action="{{ url_for('admin_update_payment', order_id=order.id) }}" method="POST">
+          <div class="form-group" style="margin-bottom:.75rem">
+            <label style="font-size:.8rem">Update Payment Status</label>
+            <select class="form-control" name="payment_status">
+              {% for ps in payment_statuses %}
+              <option value="{{ ps.name }}" {% if ps.name == payment.status_name %}selected{% endif %}>
+                {{ ps.name|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-outline btn-sm" style="width:100%;justify-content:center">
+            Update Payment
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if review %}
+    <div class="detail-card" style="margin-top:1.25rem">
+      <div class="dc-header"><h2>⭐ Customer Review</h2></div>
+      <div class="dc-body" style="font-size:.88rem">
+        <div style="color:#f59e0b;font-size:1.2rem;margin-bottom:.5rem">
+          {{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}
+        </div>
+        <p style="color:var(--muted);font-style:italic">"{{ review.comment or 'No comment' }}"</p>
+        <p style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">by {{ review.reviewer_name }} · {{ review.created_at[:10] }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

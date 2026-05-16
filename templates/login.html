@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Login — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .auth-page {
+    min-height: calc(100vh - var(--nav-h));
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, var(--ink) 0%, #2e1f0e 100%);
+    padding: 2rem 1rem;
+  }
+  .auth-card {
+    background:#fff; border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,.35);
+    width:100%; max-width:420px;
+    overflow:hidden;
+  }
+  .auth-header {
+    background: var(--spice); padding:2rem;
+    text-align:center;
+  }
+  .auth-header h1 { font-family:'Playfair Display',serif; color:#fff; font-size:1.8rem; }
+  .auth-header p { color:rgba(255,255,255,.8); font-size:.9rem; margin-top:.3rem; }
+  .auth-brand { font-family:'Playfair Display',serif; font-size:1rem; color:rgba(255,255,255,.6); margin-bottom:.25rem; letter-spacing:.05em; }
+  .auth-body { padding:2rem; }
+  .auth-footer { text-align:center; margin-top:1.25rem; font-size:.875rem; color:var(--muted); }
+  .auth-footer a { color:var(--spice); font-weight:600; text-decoration:none; }
+  .auth-footer a:hover { text-decoration:underline; }
+  .demo-box {
+    background:#fdf6ec; border:1px dashed rgba(201,82,26,.4); border-radius:8px;
+    padding:.75rem 1rem; margin-bottom:1.25rem; font-size:.82rem; color:var(--muted);
+  }
+  .demo-box strong { color:var(--spice); }
+  .show-pw { position:relative; }
+  .show-pw .toggle-pw {
+    position:absolute; right:1rem; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; font-size:1rem; color:var(--muted);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <p class="auth-brand">Saffron & Salt</p>
+      <h1>Welcome Back</h1>
+      <p>Sign in to your account</p>
+    </div>
+    <div class="auth-body">
+      <div class="demo-box">
+        <strong>Demo Admin:</strong> admin@foodapp.com / admin123<br>
+        <strong>Demo Customer:</strong> register a new account below
+      </div>
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input class="form-control" type="email" id="email" name="email"
+                 placeholder="you@example.com" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="show-pw">
+            <input class="form-control" type="password" id="password" name="password"
+                   placeholder="••••••••" required style="padding-right:2.8rem">
+            <button type="button" class="toggle-pw" onclick="togglePw()">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem">
+          Sign In →
+        </button>
+      </form>
+      <p class="auth-footer">
+        Don't have an account? <a href="{{ url_for('register') }}">Create one free</a>
+      </p>
+    </div>
+  </div>
+</div>
+<script>
+  function togglePw() {
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+  }
+</script>
+{% endblock %}

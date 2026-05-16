@@ -1,0 +1,279 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Menu Management — Admin{% endblock %}
+
+{% block admin_extra_head %}
+<style>
+  /* ── CATEGORY TABS ── */
+  .cat-tabs {
+    position: sticky; top: 0; z-index: 100;
+    background: #fff;
+    border-bottom: 2px solid var(--sand);
+    display: flex; gap: .25rem; flex-wrap: wrap;
+    padding: .6rem 0;
+    margin-bottom: 2rem;
+  }
+  .cat-tab {
+    white-space: nowrap;
+    padding: .4rem 1rem;
+    border-radius: 100px;
+    border: 1.5px solid var(--sand);
+    background: transparent;
+    font-family: inherit; font-size: .82rem; font-weight: 600;
+    cursor: pointer; color: var(--muted);
+    transition: background .18s, color .18s, border-color .18s;
+  }
+  .cat-tab:hover { background: var(--sand); color: var(--ink); }
+  .cat-tab.active { background: var(--spice); color: #fff; border-color: var(--spice); }
+  .cat-tab .tab-count {
+    display: inline-block; margin-left: .35rem;
+    background: rgba(255,255,255,.25); color: inherit;
+    font-size: .7rem; border-radius: 100px;
+    padding: 0 .4rem; line-height: 1.6;
+  }
+  .cat-tab:not(.active) .tab-count { background: var(--sand); color: var(--muted); }
+
+  /* ── CATEGORY SECTION ── */
+  .cat-section { margin-bottom: 3rem; scroll-margin-top: 60px; }
+  .cat-section-header {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--sand);
+  }
+  .cat-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem; color: var(--ink);
+    flex: 1;
+  }
+  .cat-section-title::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 1em;
+    background: var(--spice);
+    border-radius: 3px;
+    margin-right: .7rem;
+    vertical-align: middle;
+  }
+  .cat-item-count { font-size: .8rem; color: var(--muted); font-weight: 500; }
+
+  /* ── CARDS ── */
+  .menu-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
+  .menu-admin-card {
+    background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .mac-img { height:150px; overflow:hidden; position:relative; }
+  .mac-img img { width:100%; height:100%; object-fit:cover; }
+  .mac-badge {
+    position:absolute; top:.5rem; right:.5rem;
+    font-size:.7rem; font-weight:700;
+    padding:.2rem .6rem; border-radius:100px;
+  }
+  .mac-badge.avail   { background:#d1fae5; color:#065f46; }
+  .mac-badge.unavail { background:#fee2e2; color:#991b1b; }
+  .mac-body { padding:.9rem 1rem; flex:1; }
+  .mac-name { font-family:'Playfair Display',serif; font-size:1rem; margin-bottom:.25rem; }
+  .mac-desc { font-size:.8rem; color:var(--muted); line-height:1.4; }
+  .mac-price { font-size:1rem; font-weight:700; color:var(--spice); margin-top:.5rem; }
+  .mac-actions { display:flex; gap:.5rem; padding:.75rem 1rem; border-top:1px solid var(--sand); }
+
+  /* ── ADD FORM ── */
+  .add-form-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.75rem; margin-bottom:2rem; }
+  .add-form-card h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:1.25rem; }
+  .add-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.75rem; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:#fff; border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,.3); width:100%; max-width:500px; overflow:hidden; }
+  .modal-header { background:var(--sand); padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; }
+  .modal-header h3 { font-family:'Playfair Display',serif; font-size:1.1rem; }
+  .modal-body { padding:1.5rem; }
+  .close-modal { background:none; border:none; cursor:pointer; font-size:1.3rem; color:var(--muted); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<h1 class="admin-page-title">🍽️ Menu Management</h1>
+
+<!-- ADD ITEM FORM -->
+<div class="add-form-card">
+  <h2>Add New Item</h2>
+  <form action="{{ url_for('admin_menu_add') }}" method="POST">
+    <div class="add-grid">
+      <div class="form-group">
+        <label>Name *</label>
+        <input class="form-control" type="text" name="name" required placeholder="Dish name">
+      </div>
+      <div class="form-group">
+        <label>Price (₱) *</label>
+        <input class="form-control" type="number" name="price" step="0.01" min="0.01" required placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Category *</label>
+        <select class="form-control" name="category_id">
+          {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <input class="form-control" type="text" name="description" placeholder="Short description of the dish">
+    </div>
+    <div class="form-group">
+      <label>Image URL</label>
+      <input class="form-control" type="url" name="image_url" placeholder="https://...">
+    </div>
+    <button type="submit" class="btn btn-primary">Add Item</button>
+  </form>
+</div>
+
+{# Group items by category in Jinja #}
+{% set items_by_cat = {} %}
+{% for item in items %}
+  {% if item.category_id not in items_by_cat %}
+    {% set _ = items_by_cat.update({item.category_id: []}) %}
+  {% endif %}
+  {% set _ = items_by_cat[item.category_id].append(item) %}
+{% endfor %}
+
+<!-- CATEGORY TABS -->
+<nav class="cat-tabs">
+  <button class="cat-tab active" onclick="filterCat('all', this)">
+    All <span class="tab-count">{{ items|length }}</span>
+  </button>
+  {% for cat in categories %}
+    {% if items_by_cat.get(cat.id) %}
+    <button class="cat-tab" onclick="filterCat('{{ cat.id }}', this)">
+      {{ cat.name }} <span class="tab-count">{{ items_by_cat[cat.id]|length }}</span>
+    </button>
+    {% endif %}
+  {% endfor %}
+</nav>
+
+<p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem">{{ items|length }} items in catalogue</p>
+
+<!-- ITEMS BY CATEGORY -->
+{% for cat in categories %}
+  {% set cat_items = items_by_cat.get(cat.id, []) %}
+  {% if cat_items %}
+  <section class="cat-section" data-cat="{{ cat.id }}" id="cat-{{ cat.id }}">
+    <div class="cat-section-header">
+      <h2 class="cat-section-title">{{ cat.name }}</h2>
+      <span class="cat-item-count">{{ cat_items|length }} item{{ 's' if cat_items|length != 1 else '' }}</span>
+    </div>
+    <div class="menu-grid">
+      {% for item in cat_items %}
+      <div class="menu-admin-card">
+        <div class="mac-img">
+          <img src="{{ item.image_url or 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400' }}" alt="{{ item.name }}">
+          <span class="mac-badge {% if item.is_available %}avail{% else %}unavail{% endif %}">
+            {% if item.is_available %}Available{% else %}Unavailable{% endif %}
+          </span>
+        </div>
+        <div class="mac-body">
+          <div class="mac-name">{{ item.name }}</div>
+          <div class="mac-desc">{{ item.description or '' }}</div>
+          <div class="mac-price">₱{{ "%.2f"|format(item.price) }}</div>
+        </div>
+        <div class="mac-actions">
+          <button class="btn btn-outline btn-sm" onclick="openEdit({{ item.id }}, '{{ item.name|e }}', '{{ item.description or ''|e }}', {{ item.price }}, {{ item.category_id }}, '{{ item.image_url or '' }}', {{ item.is_available }})">
+            Edit
+          </button>
+          <form action="{{ url_for('admin_menu_toggle', item_id=item.id) }}" method="POST" style="flex:1">
+            {% if item.is_available %}
+              <button type="submit" class="btn btn-sm" style="background:#fee2e2;color:#991b1b;width:100%" title="Mark as unavailable">✕ Set Unavailable</button>
+            {% else %}
+              <button type="submit" class="btn btn-sm" style="background:#d1fae5;color:#065f46;width:100%" title="Mark as available">✓ Set Available</button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+{% endfor %}
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Edit Menu Item</h3>
+      <button class="close-modal" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="edit-form" method="POST">
+        <input type="hidden" name="_method" value="POST">
+        <div class="form-group">
+          <label>Name *</label>
+          <input class="form-control" type="text" name="name" id="e-name" required>
+        </div>
+        <div class="add-grid">
+          <div class="form-group">
+            <label>Price (₱) *</label>
+            <input class="form-control" type="number" name="price" id="e-price" step="0.01" min="0.01" required>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" name="category_id" id="e-cat">
+              {% for cat in categories %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input class="form-control" type="text" name="description" id="e-desc">
+        </div>
+        <div class="form-group">
+          <label>Image URL</label>
+          <input class="form-control" type="url" name="image_url" id="e-img">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:.5rem">
+          <input type="checkbox" name="is_available" id="e-avail" style="width:auto">
+          <label for="e-avail" style="margin:0;font-size:.9rem;font-weight:500;color:var(--ink)">Available to customers</label>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:.5rem">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function filterCat(catId, btn) {
+    document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.cat-section').forEach(s => {
+      s.style.display = (catId === 'all' || s.dataset.cat === catId) ? '' : 'none';
+    });
+    if (catId !== 'all') {
+      const el = document.getElementById('cat-' + catId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function openEdit(id, name, desc, price, catId, img, avail) {
+    document.getElementById('edit-form').action = `/admin/menu/${id}/edit`;
+    document.getElementById('e-name').value  = name;
+    document.getElementById('e-desc').value  = desc;
+    document.getElementById('e-price').value = price;
+    document.getElementById('e-img').value   = img;
+    document.getElementById('e-cat').value   = catId;
+    document.getElementById('e-avail').checked = !!avail;
+    document.getElementById('edit-modal').classList.add('open');
+  }
+  function closeEdit() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEdit();
+  });
+</script>
+{% endblock %}

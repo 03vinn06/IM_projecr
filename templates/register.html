@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Create Account — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .auth-page {
+    min-height:calc(100vh - var(--nav-h));
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--ink) 0%, #2e1f0e 100%);
+    padding:2rem 1rem;
+  }
+  .auth-card { background:#fff; border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,.35); width:100%; max-width:440px; overflow:hidden; }
+  .auth-header { background:var(--spice); padding:2rem; text-align:center; }
+  .auth-header h1 { font-family:'Playfair Display',serif; color:#fff; font-size:1.8rem; }
+  .auth-header p { color:rgba(255,255,255,.8); font-size:.9rem; margin-top:.3rem; }
+  .auth-brand { font-family:'Playfair Display',serif; font-size:1rem; color:rgba(255,255,255,.6); margin-bottom:.25rem; letter-spacing:.05em; }
+  .auth-body { padding:2rem; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  @media(max-width:380px) { .form-row { grid-template-columns:1fr; } }
+  .auth-footer { text-align:center; margin-top:1.25rem; font-size:.875rem; color:var(--muted); }
+  .auth-footer a { color:var(--spice); font-weight:600; text-decoration:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <p class="auth-brand">Saffron & Salt</p>
+      <h1>Create Account</h1>
+      <p>Join thousands of food lovers</p>
+    </div>
+    <div class="auth-body">
+      <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+          <label for="full_name">Full Name *</label>
+          <input class="form-control" type="text" id="full_name" name="full_name"
+                 placeholder="Jane Smith" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input class="form-control" type="email" id="email" name="email"
+                 placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input class="form-control" type="tel" id="phone" name="phone"
+                 placeholder="+1 (555) 000-0000">
+        </div>
+        <div class="form-group">
+          <label for="password">Password *</label>
+          <input class="form-control" type="password" id="password" name="password"
+                 placeholder="At least 8 characters" minlength="8" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:.5rem">
+          Create Account →
+        </button>
+      </form>
+      <p class="auth-footer">
+        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

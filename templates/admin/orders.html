@@ -1,0 +1,74 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Orders — Admin{% endblock %}
+
+{% block admin_extra_head %}
+<style>
+  .filter-bar { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+  .filter-btn {
+    padding:.35rem .9rem; border-radius:100px;
+    border:1.5px solid var(--sand);
+    background:#fff; cursor:pointer; font-size:.8rem; font-weight:600; font-family:inherit;
+    color:var(--muted); transition:all .15s; text-decoration:none;
+  }
+  .filter-btn:hover, .filter-btn.active { background:var(--spice); color:#fff; border-color:var(--spice); }
+  .orders-table-wrap { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#fdf6ec; }
+  th { padding:.6rem .9rem; text-align:left; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+  td { padding:.8rem .9rem; font-size:.88rem; border-top:1px solid var(--sand); }
+  tbody tr:hover { background:#fdf6ec; }
+  .tbl-link { color:var(--spice); font-weight:600; text-decoration:none; }
+  .tbl-link:hover { text-decoration:underline; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<h1 class="admin-page-title">🧾 Orders</h1>
+
+<div class="filter-bar">
+  <a href="{{ url_for('admin_orders') }}"
+     class="filter-btn {% if current_filter=='all' %}active{% endif %}">All</a>
+  {% for s in statuses %}
+  <a href="{{ url_for('admin_orders', status=s.name) }}"
+     class="filter-btn {% if current_filter==s.name %}active{% endif %}">
+    {{ s.name|replace('_',' ')|title }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="orders-table-wrap">
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Customer</th><th>Type</th><th>Status</th><th>Payment</th><th>Total</th><th>Date</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><strong>#{{ o.id }}</strong></td>
+          <td>{{ o.customer_name }}</td>
+          <td>{{ o.fulfillment_name|title }}</td>
+          <td><span class="status-badge status-{{ o.status_name }}">{{ o.status_name|replace('_',' ')|title }}</span></td>
+          <td>
+            {% if o.payment_method %}
+            <span style="font-size:.8rem">
+              {% if o.payment_method == 'cash' %}💵{% elif o.payment_method == 'gcash' %}📱{% elif o.payment_method == 'maya' %}💜{% else %}💳{% endif %}
+              {{ o.payment_method|title }}
+            </span><br>
+            <span class="status-badge {% if o.payment_status == 'paid' %}status-delivered{% elif o.payment_status == 'failed' %}status-cancelled{% else %}status-pending{% endif %}" style="font-size:.68rem;padding:.15rem .45rem">
+              {{ o.payment_status|title if o.payment_status else 'Pending' }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td><strong>₱{{ "%.2f"|format(o.total) }}</strong></td>
+          <td style="color:var(--muted)">{{ o.created_at[:16] }}</td>
+          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}" class="tbl-link">Manage →</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2.5rem">No orders found for this filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+  /* ADMIN SHELL */
+  .admin-layout { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - var(--nav-h)); }
+  @media(max-width:768px) { .admin-layout { grid-template-columns:1fr; } }
+
+  .admin-sidebar {
+    background:#1e130a;
+    padding:1.5rem 0;
+    position:sticky; top:var(--nav-h); height:calc(100vh - var(--nav-h));
+    overflow-y:auto;
+  }
+  .sidebar-title {
+    font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.12em;
+    color:rgba(240,228,206,.4);
+    padding:.25rem 1.5rem .75rem;
+  }
+  .sidebar-link {
+    display:flex; align-items:center; gap:.75rem;
+    padding:.7rem 1.5rem;
+    color:rgba(240,228,206,.65);
+    text-decoration:none; font-size:.9rem; font-weight:500;
+    transition:background .15s, color .15s;
+    border-left:3px solid transparent;
+  }
+  .sidebar-link:hover   { background:rgba(255,255,255,.06); color:var(--sand); }
+  .sidebar-link.active  { background:rgba(201,82,26,.15); color:var(--sand); border-left-color:var(--spice); }
+  .sidebar-link .icon   { font-size:1.1rem; width:22px; text-align:center; }
+
+  @media(max-width:768px) {
+    .admin-sidebar { position:static; height:auto; display:flex; flex-wrap:wrap; gap:.25rem; padding:.75rem; }
+    .sidebar-title { display:none; }
+    .sidebar-link  { border-left:none; border-radius:8px; flex:1 0 auto; min-width:120px; }
+    .sidebar-link.active { border-left:none; }
+  }
+
+  .admin-content { padding:clamp(1.5rem,4vw,2.5rem); background:#f5ece0; }
+  .admin-page-title {
+    font-family:'Playfair Display',serif;
+    font-size:1.8rem; margin-bottom:1.75rem;
+    display:flex; align-items:center; gap:.6rem;
+  }
+</style>
+{% block admin_extra_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <p class="sidebar-title">Admin Panel</p>
+    <a href="{{ url_for('admin_dashboard') }}"
+       class="sidebar-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+      <span class="icon">📊</span> Dashboard
+    </a>
+    <a href="{{ url_for('admin_orders') }}"
+       class="sidebar-link {% if 'admin_order' in request.endpoint %}active{% endif %}">
+      <span class="icon">🧾</span> Orders
+    </a>
+    <a href="{{ url_for('admin_menu') }}"
+       class="sidebar-link {% if request.endpoint == 'admin_menu' %}active{% endif %}">
+      <span class="icon">🍽️</span> Menu Items
+    </a>
+    <a href="{{ url_for('admin_reviews') }}"
+       class="sidebar-link {% if request.endpoint == 'admin_reviews' %}active{% endif %}">
+      <span class="icon">⭐</span> Reviews
+    </a>
+    <a href="{{ url_for('admin_analytics') }}"
+       class="sidebar-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+      <span class="icon">📈</span> Analytics
+    </a>
+    <a href="{{ url_for('index') }}" class="sidebar-link">
+      <span class="icon">🌐</span> View Site
+    </a>
+    <a href="{{ url_for('logout') }}" class="sidebar-link">
+      <span class="icon">🚪</span> Logout
+    </a>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-content">
+    {% block admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Leave a Review — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header { background:var(--ink); padding:2.5rem 0 2rem; text-align:center; }
+  .page-header h1 { font-family:'Playfair Display',serif; color:var(--sand); font-size:2rem; }
+  .page-header p  { color:rgba(240,228,206,.65); margin-top:.4rem; }
+
+  .review-wrap { max-width:760px; margin:2.5rem auto; padding:0 1rem; }
+
+  .review-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.75rem; margin-bottom:1.5rem; }
+  .review-card h2 { font-family:'Playfair Display',serif; font-size:1.2rem; margin-bottom:1.25rem; display:flex; align-items:center; gap:.5rem; }
+
+  /* Star Rating */
+  .star-group { display:flex; flex-direction:row-reverse; justify-content:flex-end; gap:.25rem; }
+  .star-group input { display:none; }
+  .star-group label {
+    font-size:2rem; cursor:pointer; color:#d1c4a8;
+    transition:color .15s;
+  }
+  .star-group input:checked ~ label,
+  .star-group label:hover,
+  .star-group label:hover ~ label { color:#f59e0b; }
+
+  .item-review-row {
+    display:flex; align-items:flex-start; gap:1rem;
+    padding:1.25rem 0; border-bottom:1px solid var(--sand);
+  }
+  .item-review-row:last-child { border:none; }
+  .item-thumb { width:60px; height:60px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+  .item-review-content { flex:1; }
+  .item-review-content strong { display:block; margin-bottom:.6rem; font-size:.95rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>⭐ Leave a Review</h1>
+  <p>Order #{{ order.id }} — Tell us how it went!</p>
+</div>
+
+<div class="review-wrap">
+  <form method="POST" action="{{ url_for('leave_review', order_id=order.id) }}">
+
+    <!-- Overall Rating -->
+    <div class="review-card">
+      <h2>🍽️ Overall Experience</h2>
+      <div class="star-group">
+        {% for i in [5,4,3,2,1] %}
+        <input type="radio" name="overall_rating" id="ov{{ i }}" value="{{ i }}"
+               {% if existing.get(None) and existing[None].rating == i %}checked{% endif %}>
+        <label for="ov{{ i }}" title="{{ i }} stars">★</label>
+        {% endfor %}
+      </div>
+      <div class="form-group" style="margin-top:1rem; margin-bottom:0">
+        <label for="overall_comment">Your Comment (optional)</label>
+        <textarea class="form-control" id="overall_comment" name="overall_comment" rows="3"
+          placeholder="How was your overall experience?">{{ existing.get(None).comment if existing.get(None) else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Per-Item Ratings -->
+    <div class="review-card">
+      <h2>🍱 Rate Each Item</h2>
+      {% for item in items %}
+      <div class="item-review-row">
+        <img class="item-thumb"
+             src="{{ item.image_url or 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=80' }}"
+             alt="{{ item.item_name }}">
+        <div class="item-review-content">
+          <strong>{{ item.item_name }}</strong>
+          <div class="star-group">
+            {% for i in [5,4,3,2,1] %}
+            <input type="radio" name="item_rating_{{ item.menu_item_id }}"
+                   id="item{{ item.menu_item_id }}_{{ i }}" value="{{ i }}"
+                   {% if existing.get(item.menu_item_id) and existing[item.menu_item_id].rating == i %}checked{% endif %}>
+            <label for="item{{ item.menu_item_id }}_{{ i }}" title="{{ i }} stars">★</label>
+            {% endfor %}
+          </div>
+          <textarea class="form-control" name="item_comment_{{ item.menu_item_id }}"
+            rows="2" placeholder="Comment on this item…" style="margin-top:.6rem; font-size:.85rem">{{ existing.get(item.menu_item_id).comment if existing.get(item.menu_item_id) else '' }}</textarea>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+      <button type="submit" class="btn btn-primary">Submit Review ✓</button>
+      <a href="{{ url_for('my_orders') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .confirm-wrap { max-width:760px; margin:3rem auto; padding:0 1rem; }
+  .confirm-hero {
+    background: var(--ink); border-radius:var(--radius);
+    padding:3rem 2rem; text-align:center; margin-bottom:2rem;
+  }
+  .confirm-icon { font-size:3.5rem; margin-bottom:1rem; }
+  .confirm-hero h1 { font-family:'Playfair Display',serif; color:var(--sand); font-size:2rem; margin-bottom:.5rem; }
+  .confirm-hero p  { color:rgba(240,228,206,.65); }
+  .confirm-id { color:var(--spice); font-weight:700; }
+
+  .detail-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; margin-bottom:1.25rem; }
+  .detail-card-header { background:var(--sand); padding:1rem 1.5rem; display:flex; align-items:center; gap:.6rem; }
+  .detail-card-header h2 { font-family:'Playfair Display',serif; font-size:1.1rem; }
+  .detail-card-body { padding:1.25rem 1.5rem; }
+  .info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; }
+  .info-item label { font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); display:block; margin-bottom:.2rem; }
+  .info-item span  { font-weight:600; }
+
+  .item-row { display:flex; align-items:center; gap:1rem; padding:.6rem 0; border-bottom:1px solid var(--sand); }
+  .item-row:last-child { border:none; }
+  .item-thumb { width:50px; height:50px; border-radius:8px; object-fit:cover; }
+  .item-info { flex:1; }
+  .item-info strong { display:block; font-size:.95rem; }
+  .item-info small  { color:var(--muted); font-size:.8rem; }
+  .item-total { font-weight:700; color:var(--spice); }
+
+  .totals-row { display:flex; justify-content:space-between; padding:.4rem 0; font-size:.9rem; }
+  .totals-row.grand { border-top:2px solid var(--sand); margin-top:.5rem; padding-top:.75rem; font-size:1.1rem; font-weight:700; color:var(--spice); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirm-wrap">
+  <div class="confirm-hero">
+    <div class="confirm-icon">🎉</div>
+    <h1>Order Placed!</h1>
+    <p>Thank you — your order <span class="confirm-id">#{{ order.id }}</span> has been received.</p>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-header"><h2>📋 Order Details</h2></div>
+    <div class="detail-card-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Order ID</label><span>#{{ order.id }}</span></div>
+        <div class="info-item"><label>Status</label>
+          <span class="status-badge status-{{ order.status_name }}">{{ order.status_name|replace('_',' ')|title }}</span>
+        </div>
+        <div class="info-item"><label>Fulfillment</label><span>{{ order.fulfillment_name|title }}</span></div>
+        <div class="info-item"><label>Placed</label><span>{{ order.created_at[:16] }}</span></div>
+      </div>
+      {% if order.fulfillment_name == 'delivery' %}
+      <div style="margin-top:1rem; padding:1rem; background:#fdf6ec; border-radius:8px">
+        <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Delivery To</label>
+        <p style="margin-top:.3rem">{{ order.delivery_address }}, {{ order.delivery_city }} {{ order.delivery_zip }}</p>
+      </div>
+      {% endif %}
+      {% if order.special_instructions %}
+      <div style="margin-top:1rem; font-size:.88rem; color:var(--muted)">
+        <strong>Note:</strong> {{ order.special_instructions }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if payment %}
+  <div class="detail-card">
+    <div class="detail-card-header"><h2>💳 Payment</h2></div>
+    <div class="detail-card-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Method</label><span>
+          {% if payment.method_name == 'cash' %}💵{% elif payment.method_name == 'gcash' %}📱{% elif payment.method_name == 'maya' %}💜{% else %}💳{% endif %}
+          {{ payment.method_name|title }}
+        </span></div>
+        <div class="info-item"><label>Status</label>
+          <span class="status-badge {% if payment.status_name == 'paid' %}status-delivered{% elif payment.status_name == 'failed' %}status-cancelled{% else %}status-pending{% endif %}">
+            {{ payment.status_name|title }}
+          </span>
+        </div>
+        {% if payment.reference_number %}
+        <div class="info-item"><label>Reference</label><span>{{ payment.reference_number }}</span></div>
+        {% endif %}
+        <div class="info-item"><label>Amount</label><span>₱{{ "%.2f"|format(payment.amount) }}</span></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="detail-card">
+    <div class="detail-card-header"><h2>🍽️ Items</h2></div>
+    <div class="detail-card-body">
+      {% for item in items %}
+      <div class="item-row">
+        <img class="item-thumb" src="{{ item.image_url or 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100' }}" alt="{{ item.item_name }}">
+        <div class="item-info">
+          <strong>{{ item.item_name }}</strong>
+          <small>₱{{ "%.2f"|format(item.unit_price) }} × {{ item.quantity }}</small>
+        </div>
+        <span class="item-total">₱{{ "%.2f"|format(item.unit_price * item.quantity) }}</span>
+      </div>
+      {% endfor %}
+      <div style="margin-top:1rem">
+        <div class="totals-row"><span>Subtotal</span><span>₱{{ "%.2f"|format(order.subtotal) }}</span></div>
+        <div class="totals-row"><span>Delivery</span><span>₱{{ "%.2f"|format(order.delivery_fee) }}</span></div>
+        <div class="totals-row"><span>Tax</span><span>₱{{ "%.2f"|format(order.tax) }}</span></div>
+        <div class="totals-row grand"><span>Total</span><span>₱{{ "%.2f"|format(order.total) }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <a href="{{ url_for('my_orders') }}" class="btn btn-outline">View All Orders</a>
+    <a href="{{ url_for('menu') }}" class="btn btn-primary">Order Again →</a>
+    {% if order.status_name in ['delivered','ready'] and not existing_review %}
+    <a href="{{ url_for('leave_review', order_id=order.id) }}" class="btn btn-outline" style="border-color:#f59e0b;color:#b45309">⭐ Leave a Review</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

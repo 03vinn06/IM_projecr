@@ -1,0 +1,98 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Reviews — Admin — Saffron & Salt{% endblock %}
+
+{% block admin_extra_head %}
+<style>
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+  .stat-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; text-align:center; }
+  .stat-num  { font-family:'Playfair Display',serif; font-size:2.2rem; color:var(--spice); }
+  .stat-lbl  { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-top:.25rem; }
+  .stars-yellow { color:#f59e0b; }
+
+  .reviews-table-wrap { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .table-header { padding:1rem 1.5rem; border-bottom:1px solid var(--sand); display:flex; align-items:center; justify-content:space-between; }
+  .table-header h2 { font-family:'Playfair Display',serif; font-size:1.15rem; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#fdf6ec; }
+  th { padding:.6rem .9rem; text-align:left; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+  td { padding:.75rem .9rem; font-size:.88rem; border-top:1px solid var(--sand); vertical-align:top; }
+  tbody tr:hover { background:#fdf6ec; }
+  .badge-overall { background:#1e5799; color:#fff; font-size:.7rem; padding:.2rem .5rem; border-radius:4px; }
+  .badge-item    { background:#2e7d32; color:#fff; font-size:.7rem; padding:.2rem .5rem; border-radius:4px; }
+  .review-comment-cell { max-width:250px; white-space:pre-wrap; word-break:break-word; color:var(--muted); font-size:.82rem; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<h1 class="admin-page-title">⭐ Reviews</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num stars-yellow">{{ "%.1f"|format(stats.avg_overall) }}<span style="font-size:1.2rem">★</span></div>
+    <div class="stat-lbl">Avg Overall Rating</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.total_overall }}</div>
+    <div class="stat-lbl">Overall Reviews</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num stars-yellow">{{ "%.1f"|format(stats.avg_item) }}<span style="font-size:1.2rem">★</span></div>
+    <div class="stat-lbl">Avg Item Rating</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.total_item }}</div>
+    <div class="stat-lbl">Item Reviews</div>
+  </div>
+</div>
+
+<div class="reviews-table-wrap">
+  <div class="table-header">
+    <h2>All Reviews ({{ reviews|length }})</h2>
+  </div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Customer</th>
+          <th>Item / Order</th>
+          <th>Rating</th>
+          <th>Comment</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reviews %}
+        <tr>
+          <td>
+            {% if r.menu_item_id %}
+              <span class="badge-item">Item</span>
+            {% else %}
+              <span class="badge-overall">Overall</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ r.reviewer_name }}</strong></td>
+          <td>
+            {% if r.item_name %}{{ r.item_name }}{% else %}Order #{{ r.order_id }}{% endif %}
+          </td>
+          <td>
+            <span style="color:#f59e0b; font-size:1rem">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</span>
+          </td>
+          <td class="review-comment-cell">{{ r.comment or '—' }}</td>
+          <td style="color:var(--muted)">{{ r.created_at[:10] }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin_delete_review', review_id=r.id) }}"
+                  onsubmit="return confirm('Delete this review?')">
+              <button type="submit" class="btn btn-sm" style="background:#b91c1c;color:#fff;padding:.3rem .7rem">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No reviews yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

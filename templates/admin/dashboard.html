@@ -1,0 +1,107 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Admin Dashboard — Saffron & Salt{% endblock %}
+
+{% block admin_extra_head %}
+<style>
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+  .stat-card {
+    background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:1.5rem; display:flex; align-items:center; gap:1rem;
+  }
+  .stat-icon { font-size:2.2rem; }
+  .stat-info label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .stat-info .num  { font-family:'Playfair Display',serif; font-size:2rem; line-height:1; color:var(--ink); }
+  .stat-card.highlight .num { color:var(--spice); }
+
+  .orders-table-wrap { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .table-header { padding:1rem 1.5rem; border-bottom:1px solid var(--sand); display:flex; align-items:center; justify-content:space-between; }
+  .table-header h2 { font-family:'Playfair Display',serif; font-size:1.15rem; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#fdf6ec; }
+  th { padding:.6rem .9rem; text-align:left; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+  td { padding:.8rem .9rem; font-size:.88rem; border-top:1px solid var(--sand); }
+  tbody tr:hover { background:#fdf6ec; }
+  .tbl-link { color:var(--spice); font-weight:600; text-decoration:none; }
+  .tbl-link:hover { text-decoration:underline; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<h1 class="admin-page-title">📊 Dashboard</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">🧾</div>
+    <div class="stat-info">
+      <label>Total Orders</label>
+      <div class="num">{{ total_orders }}</div>
+    </div>
+  </div>
+  <div class="stat-card highlight">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-info">
+      <label>Pending</label>
+      <div class="num">{{ pending_orders }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-info">
+      <label>Revenue</label>
+      <div class="num">₱{{ "%.0f"|format(total_revenue) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📅</div>
+    <div class="stat-info">
+      <label>Today's Revenue</label>
+      <div class="num">₱{{ "%.0f"|format(today_revenue) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🍽️</div>
+    <div class="stat-info">
+      <label>Menu Items</label>
+      <div class="num">{{ total_items }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⭐</div>
+    <div class="stat-info">
+      <label>Avg Rating</label>
+      <div class="num">{{ "%.1f"|format(avg_rating) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="orders-table-wrap">
+  <div class="table-header">
+    <h2>Recent Orders</h2>
+    <a href="{{ url_for('admin_orders') }}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Customer</th><th>Type</th><th>Status</th><th>Total</th><th>Date</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td><strong>#{{ o.id }}</strong></td>
+          <td>{{ o.customer_name }}</td>
+          <td>{{ o.fulfillment_name|title }}</td>
+          <td><span class="status-badge status-{{ o.status_name }}">{{ o.status_name|replace('_',' ')|title }}</span></td>
+          <td><strong>₱{{ "%.2f"|format(o.total) }}</strong></td>
+          <td style="color:var(--muted)">{{ o.created_at[:16] }}</td>
+          <td><a href="{{ url_for('admin_order_detail', order_id=o.id) }}" class="tbl-link">Manage →</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

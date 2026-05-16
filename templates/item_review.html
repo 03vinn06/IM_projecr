@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Reviews — {{ item.name }} — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header { background:var(--ink); padding:2.5rem 0 2rem; text-align:center; }
+  .page-header h1 { font-family:'Playfair Display',serif; color:var(--sand); font-size:2rem; }
+  .page-header p  { color:rgba(240,228,206,.65); margin-top:.4rem; }
+
+  .reviews-wrap { max-width:760px; margin:2.5rem auto; padding:0 1rem; }
+
+  .rating-summary { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.75rem; margin-bottom:1.5rem; display:flex; align-items:center; gap:2rem; }
+  .big-rating { font-family:'Playfair Display',serif; font-size:4rem; color:var(--spice); line-height:1; }
+  .stars-display { color:#f59e0b; font-size:1.4rem; }
+  .rating-count  { color:var(--muted); font-size:.85rem; }
+
+  .review-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-bottom:1rem; }
+  .reviewer-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+  .reviewer-name { font-weight:700; font-size:.95rem; }
+  .review-date   { font-size:.78rem; color:var(--muted); }
+  .stars-small   { color:#f59e0b; font-size:1rem; }
+  .review-comment { font-size:.9rem; color:var(--muted); margin-top:.5rem; line-height:1.6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ item.name }}</h1>
+  <p>Customer Reviews</p>
+</div>
+
+<div class="reviews-wrap">
+  <div class="rating-summary">
+    <div class="big-rating">{{ "%.1f"|format(stats.avg_rating) }}</div>
+    <div>
+      <div class="stars-display">
+        {% for i in range(1, 6) %}{{ '★' if i <= stats.avg_rating|round else '☆' }}{% endfor %}
+      </div>
+      <div class="rating-count">{{ stats.total }} review{{ 's' if stats.total != 1 }}</div>
+      <div style="margin-top:.5rem"><a href="{{ url_for('menu') }}" class="btn btn-outline btn-sm">← Back to Menu</a></div>
+    </div>
+  </div>
+
+  {% for r in reviews %}
+  <div class="review-card">
+    <div class="reviewer-header">
+      <span class="reviewer-name">{{ r.reviewer_name }}</span>
+      <span class="review-date">{{ r.created_at[:10] }}</span>
+    </div>
+    <div class="stars-small">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</div>
+    {% if r.comment %}
+    <p class="review-comment">{{ r.comment }}</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <div style="text-align:center; padding:3rem; background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);">
+    <div style="font-size:3rem; margin-bottom:1rem">🌟</div>
+    <p style="color:var(--muted)">No reviews yet. Be the first to review this item!</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

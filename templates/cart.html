@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Your Cart — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header {
+    background: var(--ink); padding: 2.5rem 0 2rem; text-align:center;
+  }
+  .page-header h1 { font-family:'Playfair Display',serif; color:var(--sand); font-size:2.2rem; }
+
+  .cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 2.5rem auto;
+    padding: 0 clamp(1rem,4vw,2rem);
+    align-items: start;
+  }
+  @media(max-width:768px) { .cart-layout { grid-template-columns:1fr; } }
+
+  /* ITEMS TABLE */
+  .cart-table { width:100%; border-collapse:collapse; }
+  .cart-table thead tr {
+    border-bottom: 2px solid var(--sand);
+    font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+  }
+  .cart-table th { padding:.6rem .75rem; text-align:left; font-weight:600; }
+  .cart-table td { padding:.9rem .75rem; vertical-align:middle; }
+  .cart-table tbody tr { border-bottom:1px solid var(--sand); }
+  .cart-table tbody tr:hover { background:#fdf6ec; }
+
+  .cart-item-name { font-weight:600; font-size:.95rem; }
+  .cart-item-price { color:var(--muted); font-size:.85rem; }
+
+  .qty-control { display:flex; align-items:center; gap:.3rem; }
+  .qty-btn {
+    width:28px; height:28px;
+    border:1.5px solid var(--sand); border-radius:50%;
+    background:#fff; cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s;
+  }
+  .qty-btn:hover { background:var(--sand); }
+  .qty-val { width:30px; text-align:center; font-weight:700; }
+
+  .cart-line-total { font-weight:700; }
+  .remove-btn {
+    background:none; border:none; cursor:pointer;
+    color:var(--muted); font-size:1.1rem;
+    transition:color .2s;
+  }
+  .remove-btn:hover { color:#dc2626; }
+
+  /* SUMMARY */
+  .summary-card {
+    background:#fff;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:1.75rem;
+    position: sticky; top: calc(var(--nav-h) + 1rem);
+  }
+  .summary-card h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:1.2rem; }
+  .summary-row { display:flex; justify-content:space-between; font-size:.9rem; margin-bottom:.7rem; }
+  .summary-row.total {
+    font-size:1.15rem; font-weight:700;
+    border-top:2px solid var(--sand); padding-top:.9rem; margin-top:.4rem;
+    color:var(--spice);
+  }
+  .summary-note { font-size:.75rem; color:var(--muted); margin-bottom:1.2rem; }
+
+  .empty-cart {
+    text-align:center; padding:5rem 1rem;
+  }
+  .empty-cart .icon { font-size:4rem; margin-bottom:1rem; }
+  .empty-cart h2 { font-family:'Playfair Display',serif; font-size:1.8rem; margin-bottom:.5rem; }
+  .empty-cart p { color:var(--muted); margin-bottom:2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Your Cart</h1>
+</div>
+
+{% if cart %}
+<div class="cart-layout">
+
+  <!-- ITEMS -->
+  <div class="card" style="overflow:visible">
+    <div style="overflow-x:auto; padding:0 .5rem">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Unit Price</th>
+            <th>Qty</th>
+            <th>Subtotal</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item_id, v in cart.items() %}
+          <tr>
+            <td>
+              <div class="cart-item-name">{{ v.name }}</div>
+              <div class="cart-item-price">₱{{ "%.2f"|format(v.price) }} each</div>
+            </td>
+            <td>₱{{ "%.2f"|format(v.price) }}</td>
+            <td>
+              <div class="qty-control">
+                <form action="{{ url_for('cart_update') }}" method="POST" style="display:contents">
+                  <input type="hidden" name="item_id" value="{{ item_id }}">
+                  <input type="hidden" name="qty" id="qty-{{ item_id }}" value="{{ v.qty }}">
+                  <button type="button" class="qty-btn" onclick="adj('{{ item_id }}',-1)">−</button>
+                  <span class="qty-val" id="show-{{ item_id }}">{{ v.qty }}</span>
+                  <button type="button" class="qty-btn" onclick="adj('{{ item_id }}',1)">+</button>
+                  <button type="submit" id="upd-{{ item_id }}" style="display:none"></button>
+                </form>
+              </div>
+            </td>
+            <td class="cart-line-total">₱{{ "%.2f"|format(v.price * v.qty) }}</td>
+            <td>
+              <form action="{{ url_for('cart_remove') }}" method="POST">
+                <input type="hidden" name="item_id" value="{{ item_id }}">
+                <button type="submit" class="remove-btn" title="Remove">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:1rem 1.25rem; display:flex; gap:1rem; align-items:center; border-top:1px solid var(--sand)">
+      <a href="{{ url_for('menu') }}" class="btn btn-outline btn-sm">← Continue Shopping</a>
+    </div>
+  </div>
+
+  <!-- ORDER SUMMARY -->
+  <div class="summary-card">
+    <h2>Order Summary</h2>
+    <div class="summary-row"><span>Subtotal</span><span id="s-subtotal">₱{{ "%.2f"|format(subtotal) }}</span></div>
+    <div class="summary-row"><span>Delivery Fee</span><span id="s-delivery">₱{{ "%.2f"|format(delivery_fee) }}</span></div>
+    <div class="summary-row"><span>Tax ({{ (tax_rate*100)|int }}%)</span><span id="s-tax">—</span></div>
+    <div class="summary-row total"><span>Total</span><span id="s-total">—</span></div>
+    <p class="summary-note">* Delivery fee and final total calculated at checkout.</p>
+    <a href="{{ url_for('checkout') }}" class="btn btn-primary" style="width:100%;justify-content:center">
+      Proceed to Checkout →
+    </a>
+  </div>
+
+</div>
+{% else %}
+<div class="empty-cart">
+  <div class="icon">🛒</div>
+  <h2>Your cart is empty</h2>
+  <p>Looks like you haven't added anything yet — let's fix that!</p>
+  <a href="{{ url_for('menu') }}" class="btn btn-primary">Browse Menu</a>
+</div>
+{% endif %}
+
+<script>
+  function adj(id, delta) {
+    const hidden = document.getElementById('qty-' + id);
+    const shown  = document.getElementById('show-' + id);
+    const newVal = Math.max(0, parseInt(hidden.value) + delta);
+    hidden.value = newVal;
+    shown.textContent = newVal;
+    document.getElementById('upd-' + id).click();
+  }
+
+  // Live summary via API
+  fetch('/api/cart-summary').then(r => r.json()).then(d => {
+    document.getElementById('s-tax').textContent   = '$' + d.tax.toFixed(2);
+    document.getElementById('s-total').textContent = '$' + d.total.toFixed(2);
+  });
+</script>
+{% endblock %}

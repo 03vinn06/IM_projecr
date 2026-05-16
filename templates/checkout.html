@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Saffron & Salt{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-header { background:var(--ink); padding:2.5rem 0 2rem; text-align:center; }
+  .page-header h1 { font-family:'Playfair Display',serif; color:var(--sand); font-size:2.2rem; }
+
+  .checkout-layout {
+    display:grid; grid-template-columns:1fr 340px; gap:2rem;
+    max-width:1100px; margin:2.5rem auto;
+    padding:0 clamp(1rem,4vw,2rem);
+    align-items:start;
+  }
+  @media(max-width:768px) { .checkout-layout { grid-template-columns:1fr; } }
+
+  /* FULFILLMENT TOGGLE */
+  .fulfillment-toggle { display:flex; gap:1rem; margin-bottom:1.5rem; }
+  .fulfill-option { flex:1; }
+  .fulfill-option input[type=radio] { display:none; }
+  .fulfill-label {
+    display:flex; flex-direction:column; align-items:center; gap:.5rem;
+    padding:1.2rem;
+    border:2px solid var(--sand);
+    border-radius:var(--radius);
+    cursor:pointer;
+    transition:border-color .2s, background .2s;
+    text-align:center;
+  }
+  .fulfill-label .icon { font-size:2rem; }
+  .fulfill-label .title { font-weight:700; font-size:.95rem; }
+  .fulfill-label .note  { font-size:.78rem; color:var(--muted); }
+  .fulfill-option input:checked + .fulfill-label {
+    border-color:var(--spice);
+    background: rgba(201,82,26,.05);
+  }
+
+  /* ADDRESS PANEL */
+  #delivery-fields {
+    display:none;
+    background: #fff7f3;
+    border:1.5px dashed rgba(201,82,26,.3);
+    border-radius:var(--radius);
+    padding:1.25rem;
+    margin-top:.5rem;
+  }
+  #delivery-fields.show { display:block; }
+  .addr-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  @media(max-width:480px) { .addr-grid { grid-template-columns:1fr; } }
+
+  /* FORM CARD */
+  .form-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.75rem; }
+  .form-card h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:1.25rem; }
+  .section-divider { border:none; border-top:1px solid var(--sand); margin:1.5rem 0; }
+
+  /* SUMMARY */
+  .summary-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.75rem; position:sticky; top:calc(var(--nav-h)+1rem); }
+  .summary-card h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:1.2rem; }
+  .order-item-row { display:flex; justify-content:space-between; font-size:.88rem; margin-bottom:.5rem; }
+  .order-item-name { flex:1; }
+  .order-item-qty  { color:var(--muted); margin:0 .75rem; }
+  .order-item-sub  { font-weight:600; }
+  .summary-row { display:flex; justify-content:space-between; font-size:.9rem; margin-bottom:.7rem; }
+  .summary-row.total { font-size:1.15rem; font-weight:700; border-top:2px solid var(--sand); padding-top:.9rem; margin-top:.4rem; color:var(--spice); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Checkout</h1>
+</div>
+
+<div class="checkout-layout">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <form method="POST" action="{{ url_for('checkout') }}" id="checkout-form">
+
+      <div class="form-card">
+        <h2>Fulfillment Method</h2>
+        <div class="fulfillment-toggle">
+          <div class="fulfill-option">
+            <input type="radio" name="fulfillment" id="pickup" value="pickup" checked onchange="toggleDelivery()">
+            <label for="pickup" class="fulfill-label">
+              <span class="icon">🏪</span>
+              <span class="title">Pickup</span>
+              <span class="note">Ready in ~15–20 min<br>No extra charge</span>
+            </label>
+          </div>
+          <div class="fulfill-option">
+            <input type="radio" name="fulfillment" id="delivery" value="delivery" onchange="toggleDelivery()">
+            <label for="delivery" class="fulfill-label">
+              <span class="icon">🛵</span>
+              <span class="title">Delivery</span>
+              <span class="note">~30–45 min<br>+$3.99 fee</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="delivery-fields">
+          <div class="form-group">
+            <label for="address">Street Address *</label>
+            <input class="form-control" type="text" id="address" name="address" placeholder="123 Main Street">
+          </div>
+          <div class="addr-grid">
+            <div class="form-group">
+              <label for="city">City *</label>
+              <input class="form-control" type="text" id="city" name="city" placeholder="Your City">
+            </div>
+            <div class="form-group">
+              <label for="zip">ZIP Code *</label>
+              <input class="form-control" type="text" id="zip" name="zip" placeholder="00000">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAYMENT METHOD -->
+      <div class="form-card" style="margin-top:1.25rem">
+        <h2>💳 Payment Method</h2>
+        <div class="fulfillment-toggle" style="flex-wrap:wrap">
+          {% for pm in payment_methods %}
+          <div class="fulfill-option">
+            <input type="radio" name="payment_method" id="pm_{{ pm.name }}" value="{{ pm.name }}"
+                   {% if loop.first %}checked{% endif %}
+                   onchange="togglePaymentRef()">
+            <label for="pm_{{ pm.name }}" class="fulfill-label">
+              <span class="icon">
+                {% if pm.name == 'cash' %}💵
+                {% elif pm.name == 'gcash' %}📱
+                {% elif pm.name == 'maya' %}💜
+                {% else %}💳{% endif %}
+              </span>
+              <span class="title">{{ pm.name|title }}</span>
+              <span class="note">
+                {% if pm.name == 'cash' %}Pay on arrival{% elif pm.name == 'gcash' %}Send via GCash{% elif pm.name == 'maya' %}Send via Maya{% else %}Tap / Swipe{% endif %}
+              </span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <div id="ref-number-field" style="display:none; margin-top:.75rem">
+          <div class="form-group" style="margin:0">
+            <label for="payment_reference">Reference Number</label>
+            <input class="form-control" type="text" id="payment_reference" name="payment_reference"
+                   placeholder="e.g. GCash/Maya transaction reference">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card" style="margin-top:1.25rem">
+        <h2>Special Instructions</h2>
+        <div class="form-group" style="margin:0">
+          <textarea class="form-control" name="instructions" rows="3"
+            placeholder="Allergies, gate code, extra napkins… anything we should know."></textarea>
+        </div>
+      </div>
+
+      <!-- Mobile: place button here -->
+      <button type="submit" class="btn btn-primary" style="display:none;width:100%;justify-content:center;margin-top:1rem" id="mobile-submit">
+        Place Order →
+      </button>
+
+    </form>
+  </div>
+
+  <!-- RIGHT: ORDER SUMMARY -->
+  <div class="summary-card">
+    <h2>Order Summary</h2>
+    <div style="margin-bottom:1rem; border-bottom:1px solid var(--sand); padding-bottom:1rem;">
+      {% for item_id, v in cart.items() %}
+      <div class="order-item-row">
+        <span class="order-item-name">{{ v.name }}</span>
+        <span class="order-item-qty">× {{ v.qty }}</span>
+        <span class="order-item-sub">₱{{ "%.2f"|format(v.price * v.qty) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="summary-row"><span>Subtotal</span><span>₱{{ "%.2f"|format(subtotal) }}</span></div>
+    <div class="summary-row"><span>Delivery Fee</span><span id="s-delivery">—</span></div>
+    <div class="summary-row"><span>Tax ({{ (tax_rate*100)|int }}%)</span><span id="s-tax">—</span></div>
+    <div class="summary-row total"><span>Total</span><span id="s-total">—</span></div>
+
+    <button type="submit" form="checkout-form" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1.5rem">
+      Place Order →
+    </button>
+    <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-top:.75rem">
+      By placing your order you agree to our <a href="#" style="color:var(--spice)">Terms of Service</a>.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  function togglePaymentRef() {
+    const needsRef = ['gcash','maya','card'].some(m => {
+      const el = document.getElementById('pm_' + m);
+      return el && el.checked;
+    });
+    document.getElementById('ref-number-field').style.display = needsRef ? 'block' : 'none';
+  }
+
+  function toggleDelivery() {
+    const isDelivery = document.getElementById('delivery').checked;
+    const df = document.getElementById('delivery-fields');
+    df.classList.toggle('show', isDelivery);
+    // make address fields required only for delivery
+    ['address','city','zip'].forEach(f => {
+      document.getElementById(f).required = isDelivery;
+    });
+    updateSummary();
+  }
+
+  function updateSummary() {
+    fetch('/api/cart-summary').then(r => r.json()).then(d => {
+      const isDelivery = document.getElementById('delivery').checked;
+      const fee = isDelivery ? d.delivery_fee : 0;
+      const subtotal = d.subtotal;
+      const tax = parseFloat(((subtotal + fee) * {{ tax_rate }}).toFixed(2));
+      const total = (subtotal + fee + tax).toFixed(2);
+      document.getElementById('s-delivery').textContent = fee > 0 ? '₱' + fee.toFixed(2) : 'FREE';
+      document.getElementById('s-tax').textContent = '₱' + tax.toFixed(2);
+      document.getElementById('s-total').textContent = '₱' + total;
+    });
+  }
+
+  updateSummary();
+
+  // show mobile submit btn on small screens
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobile-submit').style.display = 'flex';
+  }
+</script>
+{% endblock %}
