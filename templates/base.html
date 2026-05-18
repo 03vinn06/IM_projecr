@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Saffron & Salt{% endblock %}</title>
+  <title>{% block title %}Online Food Ordering System{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -189,7 +189,7 @@
 <body>
 
 <nav>
-  <a href="{{ url_for('index') }}" class="nav-brand">Saffron <span>&</span> Salt</a>
+  <a href="{{ url_for('index') }}" class="nav-brand">Online Food Ordering System</a>
   <ul class="nav-links">
     <li><a href="{{ url_for('menu') }}">Menu</a></li>
     {% if logged_in %}
@@ -224,9 +224,47 @@
 <main>{% block content %}{% endblock %}</main>
 
 <footer>
-  <strong>Saffron &amp; Salt</strong> — Crafted with ♥ for food lovers<br>
+  <strong>Online Food Ordering System</strong> — Crafted with ♥ for food lovers<br>
   <small style="opacity:.6">© 2025 All rights reserved</small>
 </footer>
 
+<script>
+  // Intercept all add-to-cart form submissions so the page never reloads/scrolls to top
+  document.addEventListener('submit', async function(e) {
+    const form = e.target;
+    if (!form.action.includes('cart/add')) return;
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '✓ Added';
+    try {
+      await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+      });
+      // Update cart count in nav without reload
+      const badge = document.querySelector('.nav-cart .badge');
+      if (badge) {
+        badge.textContent = parseInt(badge.textContent || '0') + parseInt(form.querySelector('[name="qty"]')?.value || 1);
+      } else {
+        const cartLink = document.querySelector('.nav-cart');
+        if (cartLink) {
+          const span = document.createElement('span');
+          span.className = 'badge';
+          span.textContent = form.querySelector('[name="qty"]')?.value || 1;
+          cartLink.appendChild(span);
+        }
+      }
+    } catch (err) {
+      // silently ignore
+    } finally {
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 900);
+    }
+  });
+</script>
 </body>
 </html>

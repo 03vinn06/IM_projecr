@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Your Cart — Saffron & Salt{% endblock %}
+{% block title %}Your Cart — Online Food Ordering System{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -172,7 +172,7 @@
   // Live summary via API
   fetch('/api/cart-summary').then(r => r.json()).then(d => {
     document.getElementById('s-tax').textContent   = '₱' + d.tax.toFixed(2);
-    document.getElementById('s-total').textContent = '₱' + d.total.toFixed(2);;
+    document.getElementById('s-total').textContent = '₱' + d.total.toFixed(2);
   });
 </script>
 {% endblock %}

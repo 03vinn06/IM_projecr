@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Menu — Saffron & Salt{% endblock %}
+{% block title %}Menu — Online Food Ordering System{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -56,21 +56,22 @@
 
   .menu-grid {
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
     gap:1.25rem;
   }
   .menu-item {
-    background: #fff;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    display: flex;
-    gap:0;
-    overflow: hidden;
-    transition: transform .2s, box-shadow .2s;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  gap:0;
+  overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+  height: 140px;   /* add this */
   }
   .menu-item:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(26,18,8,.12); }
   .menu-item-img {
-    width: 120px; flex-shrink:0;
+    width: 150px; flex-shrink:0;
     overflow:hidden;
   }
   .menu-item-img img {
@@ -109,8 +110,9 @@
   }
 
   @media (max-width:480px) {
-    .menu-item-img { width:90px; }
-  }
+  .menu-item-img { width:100px; }
+  .menu-item { height: 120px; }
+}
 
   /* OUT OF STOCK */
   .menu-item.out-of-stock {

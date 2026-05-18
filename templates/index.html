@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Saffron & Salt — Fine Food, Fast{% endblock %}
+{% block title %}Online Food Ordering System{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -131,7 +131,7 @@
     display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:2rem;
     counter-reset: step;
   }
-  .step { text-align:center; padding: 1.5rem; }
+  .step { text-align:center; padding: 1.5rem; background: #fff; border-radius:var(--radius); box-shadow:var(--shadow)}
   .step-icon {
     width:72px; height:72px;
     background: var(--sand);
@@ -267,7 +267,7 @@
 <div class="container">
   <div class="cta-banner">
     <h2>Ready to order?</h2>
-    <p>New to Saffron & Salt? Create a free account and enjoy seamless ordering every time.</p>
+    <p>New to Online Food Ordering System? Create a free account and enjoy seamless ordering every time.</p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
       <a href="{{ url_for('menu') }}" class="btn btn-primary">Order Now</a>
       {% if not logged_in %}
